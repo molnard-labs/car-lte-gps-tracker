@@ -248,6 +248,7 @@ async function main() {
     assert.doesNotMatch(context.closingSummary({saved: true, upload_ready: false, missing_fields: ['access_client_secret']}), /Client ID/);
     /* Closing the editor must leave both status and its requests alive. */
     const liveStatus = {configured: true, gnss_fix: false, sim_pin_blocked: false,
+        output_enabled: true, output_readback: true, output_available: true, output_gpio: 23,
         last_fix_ms: 0, last_upload_ms: 0, queue_count: 0, wifi: connected};
     respond = async () => response(liveStatus);
     await context.refresh();
@@ -255,6 +256,9 @@ async function main() {
     assert.equal(form.classList.contains('hidden'), true);
     assert.equal(element('main').classList.contains('hidden'), false);
     assert.equal(statusValue('gnss_fix'), 'No');
+    assert.equal(statusValue('output_enabled'), 'Yes');
+    assert.equal(statusValue('output_readback'), 'Yes');
+    assert.equal(statusValue('output_gpio'), '23');
     assert.match(element('status-freshness').textContent, /Live status/);
     context.lock(true);
     await context.refresh();
@@ -265,6 +269,7 @@ async function main() {
     respond = async () => { throw Error('Offline'); };
     await context.refresh();
     assert.match(statusValue('gnss_fix'), /Unknown/);
+    assert.match(statusValue('output_enabled'), /Unknown/);
     assert.match(element('status-freshness').textContent, /out of date.*last received/);
     assert.equal(element('reconnect-status').classList.contains('hidden'), false);
     respond = async () => response({...liveStatus, gnss_fix: true, applying: true});

@@ -23,9 +23,11 @@ try {
         '--error-exitcode=1', '--std=c11', '-U', 'ESP_PLATFORM',
         '-I', 'firmware/components/tracker_core/include',
         '-I', 'firmware/components/tracker_store/include',
+        '-I', 'firmware/components/tracker_output/include',
         '-I', 'firmware/components/tracker_setup', '-I', 'firmware/main',
         'firmware/components/tracker_core/tracker_core.c',
         'firmware/components/tracker_store/tracker_store.c',
+        'firmware/components/tracker_output/tracker_output.c',
         'firmware/components/tracker_setup/setup_policy.c',
         'firmware/main/tracker_policy.c'
     )

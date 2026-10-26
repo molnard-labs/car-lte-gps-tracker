@@ -17,6 +17,7 @@
 #include "tracker_policy.h"
 #include "tracker_setup.h"
 #include "tracker_store.h"
+#include "tracker_output.h"
 
 #define IGNITION_GPIO GPIO_NUM_13
 #define VALID_UTC_MS INT64_C(1704067200000)
@@ -123,9 +124,12 @@ static void try_sleep(const tracker_config_t *config, const tracker_fix_t *last_
     /* ext0 is level-sensitive: an assertion after this final read immediately wakes us. */
     if (result == ESP_OK && rtc_gpio_get_level(IGNITION_GPIO) != 0 && !atomic_load(&s_ignition) &&
         !tracker_setup_is_active()) {
-        ESP_LOGI(TAG, "Parked; next heartbeat in %" PRId64 " seconds", delay / 1000);
-        esp_deep_sleep_start();
+        if (tracker_output_prepare_sleep()) {
+            ESP_LOGI(TAG, "Parked; next heartbeat in %" PRId64 " seconds", delay / 1000);
+            esp_deep_sleep_start();
+        }
     }
+    tracker_output_cancel_sleep();
     (void)esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
     (void)rtc_gpio_deinit(IGNITION_GPIO);
     gpio_set_direction(IGNITION_GPIO, GPIO_MODE_INPUT);
@@ -134,6 +138,8 @@ static void try_sleep(const tracker_config_t *config, const tracker_fix_t *last_
     atomic_store(&s_sleep_preparing, false);
 }
 void app_main(void) {
+    if (!tracker_output_init(esp_sleep_get_wakeup_cause() != ESP_SLEEP_WAKEUP_UNDEFINED))
+        await_service("Output GPIO initialization", ESP_FAIL);
     s_status_mutex = xSemaphoreCreateMutex();
     if (!s_status_mutex) await_service("Status allocation", ESP_ERR_NO_MEM);
     (void)rtc_gpio_deinit(IGNITION_GPIO);
@@ -245,6 +251,12 @@ void app_main(void) {
             apply_in_progress = false;
         }
         int64_t now = monotonic_ms();
+        /* A command received in the previous HTTPS response gets a prompt
+         * measured-state report without changing the normal reporting rate. */
+        if (tracker_output_take_report_due()) {
+            policy.next_report_ms = now;
+            parked_attempted = false;
+        }
         tracker_mode_t before = policy.mode;
         bool ignition = atomic_load(&s_ignition);
         tracker_policy_update(&policy, now, ignition);
@@ -350,7 +362,7 @@ void app_main(void) {
             if (diagnostic.error[0]) ESP_LOGW(TAG, "Status: %s", diagnostic.error);
             next_diagnostic = now + 60000;
         }
-        if (now >= next_sleep && tracker_policy_may_sleep(&policy, now, atomic_load(&s_ignition),
+        if (now >= next_sleep && !tracker_output_report_pending() && tracker_policy_may_sleep(&policy, now, atomic_load(&s_ignition),
                                                         tracker_setup_is_active(), parked_attempted)) {
             try_sleep(&config, &accepted_fix);
             (void)tracker_net_resume();

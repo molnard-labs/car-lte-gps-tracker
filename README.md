@@ -33,9 +33,10 @@ Use the USB-C socket marked **TTL** for ESP32 programming. Connect the GNSS ante
 - Default reporting: **30 seconds** while active, another **10 minutes** after ignition turns off, then a heartbeat every **30 minutes**. Bench mode defaults on and keeps the board awake.
 - Protected active-low ignition input on **GPIO13**, using its internal RTC pull-up and ext0 wake. Vehicle wiring and complete-system sleep current still require measurement.
 - Persistent **4096-position / 512 KiB** offline queue, latest-position priority and chronological backfill. Real fixes retain their original timestamps; no-fix heartbeats preserve the last measured location.
+- **GPIO23 LED/relay output**, controlled through Traccar custom commands and `switch.pablo_output` in HA, with actual pin-state feedback. See [remote output setup](docs/setup/remote-output.md).
 - NVS configuration with atomic save/rollback, persisted SIM PIN retry lock and no compiled secrets. One modem driver owns UART for GNSS and PPP/CMUX.
 
-Relay control, MQTT, OTA and battery percentage/source estimates are outside this PoC. The 150-second parked work plus 30-second shutdown budget is a target: failed shutdown can keep the board awake. Permanent vehicle installation requires protected power and measured consumption.
+MQTT, OTA and battery percentage/source estimates are outside this PoC. The GPIO output starts OFF on reset and retains its level through normal deep sleep. The 150-second parked work plus 30-second shutdown budget is a target: failed shutdown can keep the board awake. Permanent vehicle installation requires protected power and measured consumption.
 
 ## Build and setup
 
@@ -58,7 +59,7 @@ cd firmware/test
 make
 ```
 
-The **eight active C suites** cover configuration/GNSS, AT response collection, storage, scheduling, network policy and setup. On Windows, `tools/ci-local.ps1` also runs JavaScript/UI and Python provisioning tests plus portable static analysis. GitHub Actions performs these checks and an ESP-IDF build. See [contributing](CONTRIBUTING.md).
+The **nine active C suites** cover configuration/GNSS, AT response collection, storage, scheduling, network policy, setup and output control. On Windows, `tools/ci-local.ps1` also runs JavaScript/UI and Python provisioning tests plus portable static analysis. GitHub Actions performs these checks and an ESP-IDF build. See [contributing](CONTRIBUTING.md).
 
 Keep credentials, raw flash images and private position history outside Git. `tools/provisioning-private/` is ignored. The standalone [RAM-only PSRAM diagnostic](tools/psram-ram-test/README.md) is retained as reproducible hardware evidence and uses its own documented toolchain.
 

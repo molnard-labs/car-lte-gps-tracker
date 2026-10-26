@@ -134,4 +134,8 @@ Keep bench mode enabled until protected GPIO13 ignition wiring and sleep/wake be
 
 ## Local checks
 
-`make -C firmware/test` runs eight active C suites. `tools/ci-local.ps1` additionally checks portable C, embedded JavaScript/UI behavior and both Python provisioning tools. These complement the ESP-IDF build and hardware checks; they do not replace LTE/power qualification.
+`make -C firmware/test` runs nine active C suites. `tools/ci-local.ps1` additionally checks portable C, embedded JavaScript/UI behavior and both Python provisioning tools. These complement the ESP-IDF build and hardware checks; they do not replace LTE/power qualification.
+
+## Remote output
+
+GPIO23 can drive a test LED or a compatible active-high relay-board input. Traccar custom commands `OUTPUT ON` / `OUTPUT OFF` and the reported-state HA switch are described in [remote output setup](remote-output.md).

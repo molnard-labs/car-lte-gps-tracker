@@ -70,3 +70,7 @@ Daily backup runs at **03:15 Europe/Budapest**. Include database events/routines
 Recheck current-marker ordering after backfill, no-fix location preservation, report behavior and real HA coordinates after changes. The current [PoC record](../poc-status.md) confirms a real panel-to-Traccar-to-HA location; LTE and vehicle power tests remain separate gates.
 
 References: [Traccar app documentation](https://github.com/hassio-addons/app-traccar/blob/v0.27.0/traccar/DOCS.md), [HA Traccar Server](https://www.home-assistant.io/integrations/traccar_server/), [OsmAnd protocol](https://www.traccar.org/osmand/), [Cloudflare service tokens](https://developers.cloudflare.com/cloudflare-one/access-controls/service-credentials/service-tokens/).
+
+## LED / relay output
+
+The **Autó** dashboard also includes `switch.pablo_output`. It sends native Traccar custom commands and follows the reported GPIO23 state. The car-only account remains read-only for editing, with **Limit commands** disabled. See [output setup and the HA package](remote-output.md).

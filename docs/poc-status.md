@@ -30,6 +30,12 @@ The separate homelab deployment uses Traccar HA app **0.27.0 / Traccar 6.16.0**,
 
 Server commissioning verified unauthorized/unknown-device rejection, exact route restriction, route/trip/stop reports with isolated test data, no-fix handling, backfill ordering, database failure without fallback, and backup/isolated restore. Timestamp columns retain milliseconds. Retention is 365 days, with an hourly bounded cleanup and daily 03:15 Europe/Budapest backup. This repository contains firmware and interface documentation; server operational scripts and credentials remain in the homelab project.
 
+## Remote output verified
+
+The GPIO23 output is implemented and programmed on the board. Native Traccar `OUTPUT ON`, HA OFF/ON/OFF, actual pad readback, unknown-command rejection and ON → physical reset → OFF all passed. HA exposes `switch.pablo_output` and an **Autó** dashboard at `/car-tracker/car`; its state is confirmed by the board. The existing car-only Traccar account retains read-only/device-only restrictions, with its command restriction disabled. The HA configuration was backed up and checked, then REST commands/templates were reloaded without restarting HA. See [remote output](setup/remote-output.md).
+
+This deployment's application is **1,305,776 bytes**, SHA256 `46bce4e66ada5955ba6f7895a7ce09ef12830a215d5a9e755d3a19a1427843d5`. A complete 4 MiB pre-update backup matched the rollback app, the application write was hash-verified, and configuration remained unchanged. Private evidence: `output-end-to-end-validation.json` and `output-reset-rejection-validation.json` in the provisioning bundle. The nine C suites and UI/provisioning checks passed. Deep-sleep pad retention is host-tested; a physical LED/relay attachment, relay contacts and complete-system sleep current remain hardware qualification.
+
 ## Remaining qualification
 
 - LTE with the actual SIM/APN/PIN, registration, PPP/CMUX, simultaneous GNSS and automatic Wi-Fi/LTE transitions.
@@ -41,6 +47,6 @@ Server commissioning verified unauthorized/unknown-device rejection, exact route
 
 ## Evidence and updates
 
-The working PoC application before repository cleanup was **1,303,184 bytes**, SHA256 `82fe6ebdeaafd2357a651cc70ae9ce300d58b44d38e6fc242f74a01c8066a07e`. This identifies the measured image; rebuilding metadata can change a binary hash without changing behavior. Cleanup removes unused modules and documentation; it does not require reflashing the already working board.
+The current measured image is identified in the GPIO23 deployment record above. Rebuilding metadata can change a binary hash without changing behavior.
 
 Factory/application recovery images, credentials and raw position evidence are private and excluded from Git. Retain them locally for recovery. Public hardware evidence is in [the board report](../hardware/diagnostics-2026-10-26.md).

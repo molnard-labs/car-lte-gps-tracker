@@ -30,6 +30,7 @@ The original ESP32 directly maps only part of its external memory. Normal tracke
 | GPIO27 / GPIO26 | ESP32 UART TX / RX, reserved for the modem |
 | GPIO4 / GPIO25 / GPIO32 | Modem PWRKEY / FLIGHT / DTR |
 | GPIO33 / GPIO34 | Modem RING / STATUS |
+| GPIO23 | Active-high LED/relay-board output with input readback and deep-sleep hold |
 | GPIO13 | Active-low ignition input in this project, internal RTC pull-up; SD/JTAG use disabled |
 | GPIO12 | Onboard LED |
 | GPIO35 / GPIO36 | Battery / solar analog sense inputs |

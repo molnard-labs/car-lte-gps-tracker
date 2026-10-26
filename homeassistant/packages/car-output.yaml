@@ -1,0 +1,37 @@
+# Merge as a Home Assistant package; keep the bearer token in secrets.yaml.
+# The Traccar user needs access to pablo and permission to send commands.
+rest_command:
+  pablo_output_on:
+    url: http://192.168.88.48:8082/api/commands/send
+    method: POST
+    headers:
+      Authorization: !secret traccar_pablo_authorization
+      Content-Type: application/json
+    payload: '{"deviceId":1,"type":"custom","attributes":{"data":"OUTPUT ON"}}'
+    timeout: 10
+  pablo_output_off:
+    url: http://192.168.88.48:8082/api/commands/send
+    method: POST
+    headers:
+      Authorization: !secret traccar_pablo_authorization
+      Content-Type: application/json
+    payload: '{"deviceId":1,"type":"custom","attributes":{"data":"OUTPUT OFF"}}'
+    timeout: 10
+
+template:
+  - switch:
+      - name: Pablo output
+        unique_id: pablo_gpio23_output
+        icon: mdi:electric-switch
+        availability: >-
+          {% set stamp = state_attr('device_tracker.pablo', 'outputReportedAt') | float(0) %}
+          {% set age = as_timestamp(now()) - stamp / 1000 %}
+          {% set limit = 2400 if state_attr('device_tracker.pablo', 'mode') == 'parked' else 120 %}
+          {{ state_attr('device_tracker.pablo', 'outputAvailable') == true
+             and state_attr('device_tracker.pablo', 'output') in [true, false]
+             and stamp > 0 and age >= -10 and age <= limit }}
+        state: "{{ state_attr('device_tracker.pablo', 'output') == true }}"
+        turn_on:
+          - action: rest_command.pablo_output_on
+        turn_off:
+          - action: rest_command.pablo_output_off

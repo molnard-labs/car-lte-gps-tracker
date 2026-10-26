@@ -149,6 +149,8 @@ function wifiStatusView(wifi,fresh,translate){
     return {kind:'disconnected',title:translate('wifiDisconnected'),detail:translate('wifiNoConnection')};
 }
 function renderWifi(wifi,fresh){const view=wifiStatusView(wifi,fresh,t);$('wifi-banner').className='card wifi-banner '+view.kind;$('wifi-state').textContent=view.title;$('wifi-detail').textContent=view.detail;}
+Object.assign(text.en,{output_enabled:'Output commanded ON',output_readback:'Output pin HIGH',output_gpio:'Output GPIO',output_available:'Output readback valid',output_result:'Last output command',output_applied:'Output commands applied',output_rejected:'Output commands rejected'});
+Object.assign(text.hu,{output_enabled:'Kimenet bekapcsolva',output_readback:'Kimeneti láb magas szinten',output_gpio:'Kimenet GPIO',output_available:'Kimenet visszaolvasása érvényes',output_result:'Utolsó kimeneti parancs',output_applied:'Végrehajtott kimeneti parancsok',output_rejected:'Elutasított kimeneti parancsok'});
 function diagnosticNumber(value){return typeof value==='number'&&Number.isFinite(value)&&value>=0;}
 function elapsedTime(ms){const seconds=Math.floor(ms/1000),minutes=Math.floor(seconds/60),hours=Math.floor(minutes/60);return hours?hours+' h '+minutes%60+' min':minutes?minutes+' min '+seconds%60+' s':seconds+' s';}
 function gnssStatusView(gnss,fresh,translate){
@@ -194,7 +196,7 @@ function renderStatus(status){
     $('status-freshness').textContent=freshness;
     $('reconnect-status').className=statusFresh&&configLoaded?'hidden':'';
     const dl=$('status-list');dl.replaceChildren();
-    for(const key of ['configured','ignition','gnss_fix','sim_status','sim_pin_blocked','mode','network','last_fix_ms','last_upload_ms','queue_count','queue_dropped','last_http_status','error']){
+    for(const key of ['output_enabled','output_readback','output_available','output_gpio','output_result','output_applied','output_rejected','configured','ignition','gnss_fix','sim_status','sim_pin_blocked','mode','network','last_fix_ms','last_upload_ms','queue_count','queue_dropped','last_http_status','error']){
         const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=t(key);
         let value=status&&status[key];
         if(!statusFresh)value=t('statusUnknown');

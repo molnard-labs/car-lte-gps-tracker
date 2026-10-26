@@ -16,7 +16,7 @@ Phone/AP and LAN access, scanning, Wi-Fi save, redacted configuration, invalid s
 | Setup guards | Setup policy host suite | Exact AP/STA IPv4 and IPv4-mapped IPv6 matching, address-specific Host/Origin checks, optional admin credentials, session-cookie matching, duplicate-cookie rejection, flat request shape and embedded-NUL/nesting rejection |
 | Setup apply/auth state | Setup policy/apply host tests | Authentication expiry independent of tracking; reads never enter apply; validated mutations pause until scheduler completion; failed/uncommitted apply releases; AP deadlines remain separate |
 | Setup listener | Actual listener-wrapper source with mocked network calls | Separate AP/STA binding before listen, exact interface/address and loopback control ports, IPv4/mapped IPv6, PPP interfaces rejected, unrelated task/port binds unchanged, unavailable interface and binding/hook failures fail closed |
-| Firmware build | ESP-IDF v5.5.6, target `esp32` | All four tracker components and scheduler link against real IDF APIs; binary fits the application partition |
+| Firmware build | ESP-IDF v5.5.6, target `esp32` | All five tracker components and scheduler link against real IDF APIs; binary fits the application partition |
 | Embedded page | JavaScript syntax/behavior tests and browser exercise | Wi-Fi-only field isolation, failed saves preserve entries, errors focus/scroll beside the clicked Save, localized field guidance, partial-save success lists missing upload fields, optional web password distinct from AP password, safe reopen links and per-profile scans; polling continues after editor close/during save; stale GPS becomes Unknown; hung reads time out without overlap; exact expired-session renewal/retry is bounded and preserves drafts/secrets/unchecked fields; Basic-login failures and uncertain mutation results are not replayed |
 | Provisioning | `python tools/test_provision_tracker.py` | Unique private credentials, overwrite refusal, label validation, safe generator failures and correct image-size checks without hardware |
 
@@ -95,3 +95,7 @@ Use a protected bench ignition signal first. Measure the complete board and powe
 - Only after these gates, perform a monitored road test comparing actual route, timestamps, parking position and reconnection behavior. Vehicle power and ignition must use the qualified installation interface.
 
 Store sanitized test evidence alongside the build identification. Keep credentials, raw factory flash, MAC/IMEI and private location history out of the repository.
+
+## GPIO23 remote output
+
+The host suite checks fragmented/oversized/invalid response rejection, no execution on failed/cancelled transport, exact idempotent ON/OFF commands, GPIO readback mismatch, reset OFF and retained deep-sleep state. Hardware commissioning checks Traccar command ON, HA OFF/ON/OFF, reported readback/HA agreement, rejected unknown commands and reset OFF. Retained pad state and output load still require the full physical sleep/current tests. See [output setup](setup/remote-output.md).

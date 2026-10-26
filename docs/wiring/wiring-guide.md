@@ -16,9 +16,10 @@ This revision uses the diagnosed **LILYGO T-SIM7600X T54-V1.3 / ESP32-WROVER-E**
 | Modem FLIGHT | GPIO25 | Retained high for modem operation |
 | Modem DTR | GPIO32 | Retained high during parked sleep |
 | Modem STATUS | GPIO34 | Input only, no internal pull-up |
+| LED/relay output | **GPIO23** | Active high, 3.3 V logic, OFF after reset |
 | Ignition | **GPIO13** | Active low, internal pull-up, RTC ext0 wake |
 
-Do not use the SD-card interface or GPIO13 JTAG function. GPIO26 remains reserved for the modem. The tracker has no relay output.
+Do not use the SD-card interface or GPIO13 JTAG function. GPIO26 remains reserved for the modem. GPIO23 is the dedicated active-high LED/relay-board output; see [output wiring](../setup/remote-output.md).
 
 ## Vehicle ignition interface
 
@@ -55,4 +56,4 @@ The board's regulated 5 V main input is **VBUS**, shared with USB-C. Its white *
 
 Specify and test the automotive protection, converter, cut-off threshold, wiring and fuse with the actual installation before connecting to the car.
 
-The board's battery ADC is uncalibrated; firmware neither reports an invented battery level nor uses it for starter-battery protection. Measure complete-system active and parked current, including the converter and ignition interface, before estimating parked runtime. Relay control, immobilization, OTA and motion-based towing detection are outside this revision.
+The board's battery ADC is uncalibrated; firmware neither reports an invented battery level nor uses it for starter-battery protection. Measure complete-system active and parked current, including the converter and ignition interface, before estimating parked runtime. Vehicle immobilization, OTA and motion-based towing detection are outside this revision. The optional GPIO23 relay-board load must be included in power measurements.

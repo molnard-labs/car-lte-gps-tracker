@@ -6,7 +6,7 @@ Version 3, 2026-10-26. This is the current design for the working Wi-Fi PoC, inc
 
 The owner's car reports its real GNSS position to the owner's homelab, where Traccar keeps position history and Home Assistant shows the car on a map. Commission the owned board over home Wi-Fi before introducing a SIM or permanent vehicle wiring. Both stages use the same HTTPS endpoint and payload.
 
-This version includes parked operation, a temporary setup AP and local Wi-Fi LAN configuration page, durable offline positions and explicit fix/receipt timestamps. It excludes relay control, remote vehicle actuation, OTA firmware updates, phone location substitution, battery percentage estimates and unverified supply-source detection. The car marker represents the last measured position; a heartbeat never pretends an old fix is newly measured.
+This version includes parked operation, a temporary setup AP and local Wi-Fi LAN configuration page, durable offline positions and explicit fix/receipt timestamps. It includes one generic GPIO23 LED/relay-board output with remote command/state feedback. It excludes vehicle immobilization, OTA firmware updates, phone location substitution, battery percentage estimates and unverified supply-source detection. The car marker represents the last measured position; a heartbeat never pretends an old fix is newly measured.
 
 ## Hardware and firmware architecture
 
@@ -20,6 +20,7 @@ Pin ESP-IDF to **v5.5.6**, with managed dependencies locked by the firmware buil
 | `tracker_store` | Atomic current/previous configuration, SIM PIN latch, last fix and durable position queue |
 | `tracker_net` | Sole modem/UART ownership, GNSS polling, Wi-Fi, PPP/CMUX, DNS, time and HTTPS |
 | `tracker_setup` | Separate SoftAP/STA HTTP listeners, local configuration, credential handling and status display |
+| `tracker_output` | Fixed GPIO23, bounded ON/OFF command reception, pad readback and deep-sleep retention |
 | Main scheduler | Ignition debounce, driving/grace/parked states, retry/backfill policy and deep-sleep admission |
 
 Reserve modem UART TX/RX GPIO27/26, PWRKEY4, flight control25 and DTR32. GPIO26 is never initialized as a relay output. GPIO13 is the ignition input: a protected external open-collector interface pulls it low when ignition is on. Use the ESP32 RTC pull-up and level-low ext0 wake; leave SD/JTAG disabled. Vehicle voltage must never reach the GPIO directly. The board needs continuous regulated 5 V to operate while parked; an automotive power converter and low-voltage protection require installation qualification.
@@ -94,3 +95,7 @@ Home Assistant uses its native **Traccar Server** integration and map card. Disp
 Run portable parser/configuration/serialization, store fault-injection, scheduling and setup-guard tests, plus an ESP-IDF 5.5.6 build. Then perform sequential gates: server synthetic upload; real GNSS over Wi-Fi without SIM; credential/certificate/outage tests; SIM/APN and concurrent GNSS+PPP/CMUX; power-cycle/queue recovery; ignition/sleep behavior; measured parked energy use; and a monitored vehicle road test. See [acceptance matrix](acceptance-tests.md). A missing hardware or server gate remains explicitly unverified.
 
 Protocol references: [Traccar OsmAnd](https://www.traccar.org/osmand/), [Home Assistant Traccar Server](https://www.home-assistant.io/integrations/traccar_server/), [Cloudflare service credentials](https://developers.cloudflare.com/cloudflare-one/access-controls/service-credentials/service-tokens/), [Espressif modem architecture](https://docs.espressif.com/projects/esp-protocols/esp_modem/docs/latest/README.html).
+
+## Remote output
+
+Traccar queued custom commands `OUTPUT ON` / `OUTPUT OFF` are carried only in completed authenticated HTTP 200 responses. GPIO23 is active high, OFF after reset, and retained across normal deep sleep. Successful application requests a prompt report of actual output/readback/availability and an observation timestamp independent of GPS backfill. HA uses a non-optimistic template switch and local Traccar REST commands. Network loss or sleep delays delivery until the next successful report. See [the output contract and wiring](setup/remote-output.md).

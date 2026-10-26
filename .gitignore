@@ -23,6 +23,7 @@ firmware/test/test_setup_listener
 firmware/test/test_setup_wifi_config
 firmware/test/test_net_policy
 firmware/test/test_at_response
+firmware/test/test_output
 firmware/components/*/test/*.exe
 
 # Python

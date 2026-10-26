@@ -5,6 +5,7 @@
 #include "tracker_core.h"
 #include "tracker_net.h"
 #include "tracker_store.h"
+#include "tracker_output.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -570,6 +571,15 @@ static esp_err_t status_handler(httpd_req_t *request)
     cJSON_AddNumberToObject(json, "queue_dropped", status.queue_dropped);
     cJSON_AddNumberToObject(json, "last_http_status", status.last_http_status);
     cJSON_AddStringToObject(json, "error", status.error);
+    tracker_output_status_t output;
+    tracker_output_get_status(&output);
+    cJSON_AddBoolToObject(json, "output_enabled", output.enabled);
+    cJSON_AddBoolToObject(json, "output_readback", output.readback);
+    cJSON_AddBoolToObject(json, "output_available", output.available);
+    cJSON_AddNumberToObject(json, "output_gpio", TRACKER_OUTPUT_GPIO);
+    cJSON_AddNumberToObject(json, "output_applied", output.applied);
+    cJSON_AddNumberToObject(json, "output_rejected", output.rejected);
+    cJSON_AddStringToObject(json, "output_result", output.result);
     /* Snapshot only: status requests must never issue AT commands or interfere
      * with the single modem owner. Unknown measurements stay JSON null. */
     tracker_gnss_status_t gnss;

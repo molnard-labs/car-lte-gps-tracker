@@ -8,7 +8,7 @@ CC      = gcc
 CFLAGS  = -Wall -Wextra -Wpedantic -Wshadow -Wformat=2 -std=c11
 LIBS    = -lm
 
-TESTS   = test_tracker_core test_tracker_store test_tracker_policy test_setup_policy test_setup_listener test_setup_wifi_config test_net_policy test_at_response
+TESTS   = test_tracker_core test_tracker_store test_tracker_policy test_setup_policy test_setup_listener test_setup_wifi_config test_net_policy test_at_response test_output
 TRACKER_CORE = ../components/tracker_core
 TRACKER_STORE = ../components/tracker_store
 TRACKER_SETUP = ../components/tracker_setup
@@ -67,3 +67,6 @@ test_at_response$(EXE_SUFFIX): ../components/tracker_net/test/test_at_response.c
 
 clean:
 	-@$(RM_CMD)
+
+test_output$(EXE_SUFFIX): ../components/tracker_output/test/test_output.c ../components/tracker_output/tracker_output.c ../components/tracker_output/include/tracker_output.h ../components/tracker_output/test/output_test_platform.h
+	$(CC) $(CFLAGS) -I../components/tracker_output/include -I../components/tracker_output/test -o $@ ../components/tracker_output/test/test_output.c ../components/tracker_output/tracker_output.c

@@ -5,7 +5,7 @@ This repository contains the ESP32 tracker firmware and its public setup documen
 ## Workflow
 
 1. Create a branch from `master`.
-2. Keep changes within the four active components (`tracker_core`, `tracker_store`, `tracker_net`, `tracker_setup`) and the main scheduler where possible.
+2. Keep changes within the five active components (`tracker_core`, `tracker_store`, `tracker_net`, `tracker_setup`, `tracker_output`) and the main scheduler where possible.
 3. Run the checks below and update documentation when behavior changes.
 4. Open a pull request against `master` with the behavior changed, validation performed and any hardware limitations.
 
@@ -15,7 +15,7 @@ With GCC and make installed:
 
 ```sh
 make -C firmware/test
-# Expected: 8 C suites passed
+# Expected: 9 C suites passed
 node firmware/components/tracker_setup/test/test_setup_ui.cjs
 python tools/test_provision_tracker.py
 python tools/test_configure_tracker_access.py

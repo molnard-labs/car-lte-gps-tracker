@@ -24,6 +24,7 @@
 #include "lwip/ip4_addr.h"
 #include "tracker_core.h"
 #include "tracker_store.h"
+#include "tracker_output.h"
 
 #define WIFI_IP_BIT       BIT0
 #define PPP_IP_BIT        BIT1
@@ -1097,6 +1098,13 @@ static bool http_cancelled(void)
     return tracker_net_request_expired(monotonic_ms(), s_http_job.deadline_ms, cancelled);
 }
 
+static esp_err_t output_http_event(esp_http_client_event_t *event)
+{
+    if (event->event_id == HTTP_EVENT_ON_DATA && event->data_len > 0)
+        tracker_output_response_append(event->data, (size_t)event->data_len);
+    return ESP_OK;
+}
+
 static void http_worker(void *argument)
 {
     (void)argument;
@@ -1105,6 +1113,7 @@ static void http_worker(void *argument)
         tracker_config_t *config = &s_http_job.config;
         esp_err_t result = ESP_ERR_TIMEOUT;
         int status = 0;
+        tracker_output_response_begin();
         if (s_http && s_http_network != s_http_job.network) close_http();
         if (!s_http && !http_cancelled()) {
             esp_http_client_config_t http_config = {
@@ -1118,6 +1127,7 @@ static void http_worker(void *argument)
                 .buffer_size = 1024,
                 .buffer_size_tx = 2048,
                 .user_agent = "CarTracker/1",
+                .event_handler = output_http_event,
             };
             s_http = esp_http_client_init(&http_config);
             s_http_network = s_http_job.network;
@@ -1146,6 +1156,7 @@ static void http_worker(void *argument)
         } else if (!s_http && !http_cancelled()) {
             result = ESP_ERR_NO_MEM;
         }
+        tracker_output_response_finish(result == ESP_OK && status == 200 && !http_cancelled());
         if (result != ESP_OK || status < 200 || status >= 300) {
             close_http();
             if (result != ESP_OK) {
@@ -1496,6 +1507,19 @@ esp_err_t tracker_net_publish(const tracker_sample_t *sample, int *http_status)
         return ESP_ERR_INVALID_STATE;
     }
     int length = tracker_osmand_form(&config, sample, s_http_job.form, sizeof(s_http_job.form));
+    if (length >= 0) {
+        tracker_output_status_t output;
+        tracker_output_get_status(&output);
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        int extra = snprintf(s_http_job.form + length, sizeof(s_http_job.form) - (size_t)length,
+            "&output=%s&outputReadback=%s&outputAvailable=%s&outputGpio=%d&outputReportedAt=%lld&outputResult=%s",
+            output.enabled ? "true" : "false", output.readback ? "true" : "false",
+            output.available ? "true" : "false", TRACKER_OUTPUT_GPIO,
+            (long long)now.tv_sec * 1000 + now.tv_usec / 1000, output.result);
+        if (extra < 0 || (size_t)extra >= sizeof(s_http_job.form) - (size_t)length) length = -1;
+        else length += extra;
+    }
     if (length < 0) {
         xSemaphoreGive(s_http_mutex);
         return ESP_ERR_INVALID_SIZE;

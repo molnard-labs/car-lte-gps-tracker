@@ -9,6 +9,7 @@ set(COMPONENT_DIRS
     "${CMAKE_CURRENT_SOURCE_DIR}/components/tracker_store"
     "${CMAKE_CURRENT_SOURCE_DIR}/components/tracker_net"
     "${CMAKE_CURRENT_SOURCE_DIR}/components/tracker_setup"
+    "${CMAKE_CURRENT_SOURCE_DIR}/components/tracker_output"
 )
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)

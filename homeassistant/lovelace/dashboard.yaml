@@ -14,3 +14,6 @@ cards:
       - entity: device_tracker.pablo
         name: Pablo
         secondary_info: last-updated
+      - entity: switch.pablo_output
+        name: Autó kimenet (GPIO23)
+        secondary_info: last-changed
