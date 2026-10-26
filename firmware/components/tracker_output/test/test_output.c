@@ -37,6 +37,14 @@ int main(void)
     s_gpio_error = 1; response("OUTPUT ON", true); assert(!s_level);
     tracker_output_status_t status; tracker_output_get_status(&status);
     assert(!status.available && !strcmp(status.result, "gpio_error"));
+    assert(!tracker_output_init(false));
+    tracker_output_get_status(&status);
+    assert(!status.available && !strcmp(status.result, "gpio_error"));
+    s_gpio_error = 0;
+    response("OUTPUT ON", true); assert(!s_level); /* failed init stays unavailable */
+    assert(tracker_output_prepare_sleep());
+    assert(tracker_output_init(false));
+    response("OUTPUT ON", true); assert(s_level); /* reset can restore a healthy output */
     puts("Output: fragmented responses, rejection, idempotence, readback, sleep retention and reset OFF passed");
     return 0;
 }

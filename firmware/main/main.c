@@ -139,7 +139,7 @@ static void try_sleep(const tracker_config_t *config, const tracker_fix_t *last_
 }
 void app_main(void) {
     if (!tracker_output_init(esp_sleep_get_wakeup_cause() != ESP_SLEEP_WAKEUP_UNDEFINED))
-        await_service("Output GPIO initialization", ESP_FAIL);
+        ESP_LOGE(TAG, "Output GPIO unavailable; tracking continues with output marked unavailable");
     s_status_mutex = xSemaphoreCreateMutex();
     if (!s_status_mutex) await_service("Status allocation", ESP_ERR_NO_MEM);
     (void)rtc_gpio_deinit(IGNITION_GPIO);

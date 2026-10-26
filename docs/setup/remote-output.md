@@ -39,7 +39,7 @@ After applying a command the board requests a prompt fresh-state report. Traccar
 | `outputReportedAt` | Time of this output-state observation, Unix milliseconds; independent of an old backfilled GPS fix |
 | `outputResult` | `boot`, `on`, `off`, `rejected` or `gpio_error` |
 
-The local status page also shows applied/rejected command counters. GPS tracking and configuration/history storage continue independently.
+The local status page also shows applied/rejected command counters. GPS tracking and configuration/history storage continue independently. An output initialization fault marks the output unavailable and rejects commands until a healthy reinitialization; it does not halt tracking or veto sleep.
 
 ## Reset and sleep
 

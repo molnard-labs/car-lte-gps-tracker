@@ -14,6 +14,7 @@ static RTC_DATA_ATTR bool s_retained;
 static portMUX_TYPE s_lock = portMUX_INITIALIZER_UNLOCKED;
 static tracker_output_status_t s_status;
 static bool s_report_due;
+static bool s_initialized;
 /* This buffer is private to the HTTPS worker, never shared with status APIs. */
 static char s_response[TRACKER_OUTPUT_RESPONSE_MAX];
 static size_t s_length;
@@ -22,6 +23,10 @@ static bool s_overflow;
 bool tracker_output_init(bool deep_sleep_wake)
 {
     bool enabled = deep_sleep_wake && s_marker == OUTPUT_MARKER && s_retained;
+    memset(&s_status, 0, sizeof(s_status));
+    s_status.result = "gpio_error";
+    s_report_due = false;
+    s_initialized = false;
     s_marker = OUTPUT_MARKER;
     s_retained = enabled;
     /* Program latch/direction before releasing a pad retained through sleep. */
@@ -30,12 +35,11 @@ bool tracker_output_init(bool deep_sleep_wake)
         .mode = GPIO_MODE_INPUT_OUTPUT, .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_ENABLE, .intr_type = GPIO_INTR_DISABLE};
     if (gpio_config(&config) != ESP_OK || gpio_hold_dis(TRACKER_OUTPUT_GPIO) != ESP_OK) return false;
-    memset(&s_status, 0, sizeof(s_status));
     s_status.enabled = enabled;
     s_status.readback = gpio_get_level(TRACKER_OUTPUT_GPIO) != 0;
     s_status.available = s_status.readback == enabled;
     s_status.result = s_status.available ? "boot" : "gpio_error";
-    s_report_due = false;
+    s_initialized = s_status.available;
     return s_status.available;
 }
 
@@ -78,7 +82,7 @@ void tracker_output_response_finish(bool successful)
     bool on = !s_overflow && end - start == 9 && !memcmp(s_response + start, "OUTPUT ON", 9);
     bool off = !s_overflow && end - start == 10 && !memcmp(s_response + start, "OUTPUT OFF", 10);
     portENTER_CRITICAL(&s_lock);
-    if (on || off) {
+    if ((on || off) && s_initialized) {
         bool requested = on;
         if (gpio_set_level(TRACKER_OUTPUT_GPIO, requested) == ESP_OK &&
             (gpio_get_level(TRACKER_OUTPUT_GPIO) != 0) == requested) {
@@ -94,7 +98,7 @@ void tracker_output_response_finish(bool successful)
         }
     } else {
         ++s_status.rejected;
-        s_status.result = "rejected";
+        s_status.result = s_initialized ? "rejected" : "gpio_error";
     }
     s_report_due = true;
     portEXIT_CRITICAL(&s_lock);
@@ -119,6 +123,7 @@ bool tracker_output_report_pending(void)
 
 bool tracker_output_prepare_sleep(void)
 {
+    if (!s_initialized) return true; /* unavailable output must not veto tracking/sleep */
     if (gpio_hold_en(TRACKER_OUTPUT_GPIO) != ESP_OK) return false;
     gpio_deep_sleep_hold_en();
     return true;
