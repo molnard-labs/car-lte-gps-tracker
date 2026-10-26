@@ -1,19 +1,29 @@
-# Credentials — never commit these
-firmware/config/credentials.h
+# Credentials, flash backups and private location evidence
+tools/provisioning-private/
+deployment/private/
+.secrets/
 
-# ESP-IDF build output
-firmware/build/
+# ESP-IDF generated files
+firmware/build*/
 firmware/sdkconfig
 firmware/sdkconfig.old
 firmware/.cache/
 firmware/managed_components/
-firmware/dependencies.lock
+tools/psram-ram-test/build*/
+tools/psram-ram-test/sdkconfig
+tools/psram-ram-test/sdkconfig.old
 
-# Test binaries
-firmware/test/test_gnss
-firmware/test/test_power
-firmware/test/test_relay
-firmware/test/test_mqtt_json
+# Host test binaries
+firmware/test/test_tracker_*
+!firmware/test/test_tracker_*.c
+!firmware/test/test_tracker_*.py
+firmware/test/*.exe
+firmware/test/test_setup_policy
+firmware/test/test_setup_listener
+firmware/test/test_setup_wifi_config
+firmware/test/test_net_policy
+firmware/test/test_at_response
+firmware/components/*/test/*.exe
 
 # Python
 __pycache__/
@@ -22,13 +32,11 @@ __pycache__/
 .env
 venv/
 
-# OS
+# OS and editors
 .DS_Store
 Thumbs.db
 *.swp
 *~
-
-# IDE
 .vscode/
 .idea/
 *.code-workspace

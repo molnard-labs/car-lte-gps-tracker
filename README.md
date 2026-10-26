@@ -1,246 +1,67 @@
-# Car LTE GPS Tracker with Remote Relay Control
+# Car LTE GPS Tracker
 
-[![CI](https://github.com/molnard-labs/car-lte-gps-tracker/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/molnard-labs/car-lte-gps-tracker/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Platform: ESP32](https://img.shields.io/badge/Platform-ESP32-blue.svg)](https://www.espressif.com/)
-[![Framework: ESP-IDF](https://img.shields.io/badge/Framework-ESP--IDF-red.svg)](https://docs.espressif.com/projects/esp-idf/)
+A working Wi-Fi proof of concept for an ESP32/SIM7600 car tracker. The board sends real GNSS positions to a self-hosted Traccar Server over protected HTTPS; Home Assistant displays the car through its Traccar Server integration.
 
-A DIY embedded system built into a car that provides **LTE-based GPS tracking** and **remote relay control** via MQTT, integrated with **Home Assistant**.
+**Verified on 2026-10-26:** a real SIM-free GNSS fix, Wi-Fi HTTPS upload with HTTP 200, stored position for `pablo` in Traccar, and `device_tracker.pablo` in Home Assistant. LTE and parked power management are implemented but still need hardware qualification. See [PoC status and remaining work](docs/poc-status.md).
 
-Built on the [LILYGO T-SIM7600](https://www.lilygo.cc/products/t-sim7600) development board.
+## Architecture
 
-> **Status:** 🚧 Work in progress — hardware design & firmware development phase
+```text
+SIM7600 GNSS → ESP32 → Wi-Fi / SIM7600 LTE (PPP + CMUX)
+                         ↓ HTTPS OsmAnd POST + device credentials
+             https://tracker.davidmolnar.dev/ingest
+                         ↓ Cloudflare Access + Tunnel
+              Traccar HA app → dedicated MariaDB database
+                         ↓ Traccar Server integration
+                   Home Assistant map
+```
 
----
-
-## Features
-
-- 📍 **GNSS tracking** (GPS/GLONASS) with position, speed, heading, and satellite data
-- 📡 **LTE connectivity** via SIM7600 modem — works anywhere with mobile coverage
-- 🔌 **Remote relay control** — interrupts fuel pump relay control circuit on command
-- 🏠 **Home Assistant integration** via MQTT (Mosquitto broker)
-- 🔋 **Backup battery** — 18650 Li-ion, automatic power-path failover
-- 🔒 **Fail-safe design** — relay defaults to CLOSED (does not block vehicle operation)
-- 🔋 **Battery voltage monitoring** — published via MQTT
-
----
+Traccar provides route history, trips/stops and geofences. Home Assistant's existing Recorder remains independent. Server installation is managed in the separate homelab project; the [server and HA guide](docs/setup/homeassistant-setup.md) documents the interface and configuration required by this firmware.
 
 ## Hardware
 
-### Main Board
+The owned board is a **LILYGO T-SIM7600X T54-V1.3 / ESP32-WROVER-E**, with **4 MB flash**, **8 MB physical PSRAM tested at 40 MHz**, and a **SIM7600E-H** modem. The printed G-H label is inconsistent with its corroborated identity. The firmware targets the original `esp32`, DIO flash at 40 MHz and PSRAM at 40 MHz.
 
-**LILYGO T-SIM7600** (ESP32-WROVER + SIM7600 LTE modem)
-
-| Feature | Details |
-|---|---|
-| MCU | ESP32-WROVER |
-| Modem | SIM7600 (LTE Cat-4) |
-| GNSS | GPS + GLONASS |
-| Battery | 18650 Li-ion slot with onboard charger |
-| Power path | Automatic switchover between 12V input and battery |
-
-### Bill of Materials
-
-See [`hardware/bom/BOM.md`](hardware/bom/BOM.md) for the full component list.
-
-### Wiring
-
-See [`docs/wiring/wiring-guide.md`](docs/wiring/wiring-guide.md) for detailed wiring instructions.
-
----
-
-## System Architecture
-
-```
-[Car 12V] → [DC-DC 5V] → [LILYGO T-SIM7600]
-                               │
-                    ┌──────────┼──────────┐
-                    │          │          │
-                 [SIM7600]  [ESP32]    [GNSS]
-                 [LTE/MQTT]    │
-                               │
-                    ┌──────────┤
-                    │          │
-              [GPIO relay]  [ADC battery]
-                    │
-              [Transistor]
-                    │
-               [12V Relay]
-                    │
-         [Fuel pump relay coil]
-```
-
----
-
-## MQTT Topics
-
-| Topic | Direction | Payload | Description |
-|---|---|---|---|
-| `car/<vehicle-id>/location` | Publish | JSON | GPS position and telemetry |
-| `car/<vehicle-id>/state` | Publish | JSON | System status heartbeat |
-| `car/<vehicle-id>/power` | Publish | JSON | Battery voltage, percent, power source |
-| `car/<vehicle-id>/cmd/relay` | Subscribe | `ON` / `OFF` | Relay control command |
-| `car/<vehicle-id>/cmd/relay/status` | Publish | `ON` / `OFF` | Relay state confirmation |
-
-### Location payload example
-
-```json
-{
-  "lat": 47.4979,
-  "lon": 19.0402,
-  "alt": 108.4,
-  "speed": 0.0,
-  "course": 0.0,
-  "satellites": 0,
-  "hdop": 0.0,
-  "date": "100426",
-  "time": "120000.0"
-}
-```
-
-### Power payload example
-
-```json
-{
-  "source": "car",
-  "battery_mv": 3987,
-  "battery_pct": 85
-}
-```
-
----
-
-## Relay Logic
-
-The relay operates on the **fuel pump relay coil control line** (low-current, ~200mA), not the high-current pump supply line.
-
-| Command | Relay | Circuit | Engine |
-|---|---|---|---|
-| `ON` (default) | Energized | CLOSED | Normal operation |
-| `OFF` | De-energized | OPEN | Fuel pump disabled |
-
-> ⚠️ **Warning:** Issuing `OFF` while driving will stall the engine. This system has no speed check or safety interlock by design. Use responsibly.
-
----
-
-## Power Supply
-
-```
-Car 12V (9–16V)
-    │
-  [TVS diode SMBJ58A]
-    │
-  [Fuse 2A]
-    │
-  [LM2596 DC-DC → 5V]
-    │
-  [1000µF low ESR + 100nF ceramic]
-    │
-  [LILYGO T-SIM7600 5V input]
-    │
-  [Onboard charger → 18650]
-       ↕ (automatic power-path)
-  [18650 backup battery]
-```
-
----
+Use the USB-C socket marked **TTL** for ESP32 programming. Connect the GNSS antenna to **GPS**; **MAIN/AUX** are cellular antenna connections. Wi-Fi commissioning requires no SIM. See the [board specification](hardware/board-specification.md), [hardware diagnostics](hardware/diagnostics-2026-10-26.md) and [wiring guide](docs/wiring/wiring-guide.md).
 
 ## Firmware
 
-Built with **ESP-IDF**. See [`firmware/`](firmware/) for source code.
+- Primary and secondary Wi-Fi profiles, with a separate Wi-Fi save button and current SSID/IP status. Either working network stays connected; failed rounds use bounded attempts and pauses.
+- English/Hungarian setup page on the temporary WPA2 `CarTracker-<suffix>` AP at `http://192.168.4.1`, and on the board's assigned home Wi-Fi address while awake. Web login is optional and disabled by default; the AP has its own unique password.
+- Passive live status: viewing or editing unsaved settings does not pause tracking. Validated saves pause only while settings are applied. Errors appear beside the relevant save button.
+- GPS diagnostics show receiver state, response age, query/error counters and reported satellite counts/HDOP. Missing satellite information remains unknown; reported counts describe satellites used for positioning.
+- Default reporting: **30 seconds** while active, another **10 minutes** after ignition turns off, then a heartbeat every **30 minutes**. Bench mode defaults on and keeps the board awake.
+- Protected active-low ignition input on **GPIO13**, using its internal RTC pull-up and ext0 wake. Vehicle wiring and complete-system sleep current still require measurement.
+- Persistent **4096-position / 512 KiB** offline queue, latest-position priority and chronological backfill. Real fixes retain their original timestamps; no-fix heartbeats preserve the last measured location.
+- NVS configuration with atomic save/rollback, persisted SIM PIN retry lock and no compiled secrets. One modem driver owns UART for GNSS and PPP/CMUX.
 
-### Module structure
+Relay control, MQTT, OTA and battery percentage/source estimates are outside this PoC. The 150-second parked work plus 30-second shutdown budget is a target: failed shutdown can keep the board awake. Permanent vehicle installation requires protected power and measured consumption.
 
-```
-firmware/
-├── main/
-│   └── main.c              # Entry point, task scheduler
-└── components/
-    ├── modem/              # SIM7600 AT command driver
-    ├── gnss/               # NMEA parser, location data
-    ├── mqtt_wrapper/       # MQTT client wrapper, topic handlers
-    ├── relay/              # Relay GPIO control
-    └── power/              # ADC battery monitor, power source detection
-```
+## Build and setup
 
-### Build
+Use **ESP-IDF v5.5.6**, target `esp32`; `esp_modem` is pinned to **1.4.1**.
 
-```bash
-git clone https://github.com/molnard-labs/car-lte-gps-tracker
-cd car-lte-gps-tracker/firmware
+```sh
+cd firmware
 idf.py set-target esp32
-cp config/credentials.example.h config/credentials.h
-# Edit credentials.h with your MQTT server, SIM APN, etc.
 idf.py build
-idf.py flash monitor
 ```
 
----
+Follow the [firmware setup guide](docs/setup/firmware-setup.md) for first installation, unique setup-password provisioning, configuration and application-only updates. The existing deployed board is already provisioned; ordinary updates preserve its configuration and queue.
 
-## Home Assistant Integration
-
-See [`homeassistant/`](homeassistant/) for ready-to-use configuration.
-
-Includes:
-- Device tracker entity
-- Relay switch entity
-- Battery sensor
-- Lovelace card example
-
----
-
-## Setup Guide
-
-1. [Hardware assembly & BOM](hardware/bom/BOM.md)
-2. [Wiring into the vehicle](docs/wiring/wiring-guide.md)
-3. [MQTT broker setup (HiveMQ Cloud, free)](docs/setup/mosquitto-tls-setup.md)
-4. [Firmware configuration and flashing](docs/setup/firmware-setup.md)
-5. [Home Assistant configuration](docs/setup/homeassistant-setup.md)
-6. [Build, QEMU emulation, and testing](docs/setup/build-and-qemu.md)
+The [technical specification](docs/technical-specification.md) defines the current behavior. The [acceptance checklist](docs/acceptance-tests.md) records tested boundaries and remaining LTE, recovery and vehicle tests.
 
 ## Development
 
-### Running unit tests (no hardware needed)
-
-```bash
-cd firmware/test/
+```sh
+cd firmware/test
 make
-# 42 tests across 4 suites — all should pass
 ```
 
-Windows (WinLibs via `winget`):
+The **eight active C suites** cover configuration/GNSS, AT response collection, storage, scheduling, network policy and setup. On Windows, `tools/ci-local.ps1` also runs JavaScript/UI and Python provisioning tests plus portable static analysis. GitHub Actions performs these checks and an ESP-IDF build. See [contributing](CONTRIBUTING.md).
 
-```powershell
-winget install --id BrechtSanders.WinLibs.POSIX.UCRT --exact
-cd firmware\test
-mingw32-make
-```
-
-### AT command simulator
-
-Test the firmware connect flow without a real modem:
-
-```bash
-python3 tools/sim7600_simulator.py --interactive
-# or: python3 tools/sim7600_simulator.py  (creates a virtual serial port)
-```
-
-Simulator supports: `--no-fix`, `--no-lte`, `--gps-lat`, `--gps-lon`.
-
----
-
-## Target Vehicle
-
-Developed on a 12V passenger vehicle platform during prototyping, but the design is intended to remain generic and applicable to most 12V vehicles.
-
----
+Keep credentials, raw flash images and private position history outside Git. `tools/provisioning-private/` is ignored. The standalone [RAM-only PSRAM diagnostic](tools/psram-ram-test/README.md) is retained as reproducible hardware evidence and uses its own documented toolchain.
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
-
----
-
-## Contributing
-
-Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+[MIT](LICENSE).

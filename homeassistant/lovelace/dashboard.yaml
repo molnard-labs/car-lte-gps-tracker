@@ -1,78 +1,16 @@
-# Lovelace dashboard for Car LTE GPS Tracker
-# Add as a manual card or paste into your dashboard YAML view.
-
+# Add as a manual dashboard card after configuring Traccar Server.
+# Replace device_tracker.pablo if your integration generated a different entity ID.
 type: vertical-stack
 cards:
-
-  # ── Map ───────────────────────────────────────────────────────────────────
   - type: map
-    title: Car Location
+    title: Car location
     entities:
-      - device_tracker.car_tracker
+      - device_tracker.pablo
     hours_to_show: 2
-    aspect_ratio: "16:9"
     default_zoom: 15
-
-  # ── Status row ────────────────────────────────────────────────────────────
-  - type: glance
-    title: Tracker Status
-    show_state: true
-    entities:
-      - entity: sensor.tracker_status
-        name: Status
-        icon: mdi:car-connected
-      - entity: sensor.tracker_speed
-        name: Speed
-        icon: mdi:speedometer
-      - entity: sensor.tracker_gps_satellites
-        name: Satellites
-        icon: mdi:satellite-variant
-      - entity: sensor.tracker_power_source
-        name: Power
-        icon: mdi:power-plug
-
-  # ── Battery card ──────────────────────────────────────────────────────────
   - type: entities
-    title: Battery
+    title: Car tracker
     entities:
-      - type: custom:mushroom-entity-card
-        entity: sensor.tracker_battery_percent
-        name: Backup Battery
-        icon: mdi:battery
-      - entity: sensor.tracker_battery_voltage
-        name: Voltage (mV)
-        icon: mdi:flash
-
-  # ── Relay control ─────────────────────────────────────────────────────────
-  - type: entities
-    title: Remote Control
-    entities:
-      - entity: switch.tracker_fuel_pump
-        name: Fuel Pump
-        icon: mdi:gas-station
-        secondary_info: last-changed
-
-  # ── Confirm dialog button (prevents accidental OFF) ───────────────────────
-  - type: button
-    name: "⚠ Disable Fuel Pump"
-    icon: mdi:car-off
-    tap_action:
-      action: call-service
-      service: switch.turn_off
-      target:
-        entity_id: switch.tracker_fuel_pump
-      confirmation:
-        text: >
-          This will cut fuel to the engine.
-          Are you sure?
-    show_state: false
-    hold_action:
-      action: more-info
-
-  # ── History graph ─────────────────────────────────────────────────────────
-  - type: history-graph
-    title: Battery (last 24h)
-    hours_to_show: 24
-    entities:
-      - entity: sensor.tracker_battery_percent
-        name: Battery %
+      - entity: device_tracker.pablo
+        name: Pablo
+        secondary_info: last-updated

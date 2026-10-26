@@ -18,7 +18,7 @@ assignees: ''
 <!-- What you expected to happen -->
 
 ## Serial log
-<!-- Paste the relevant serial monitor output here -->
+<!-- Remove credentials, device identifiers and private coordinates before sharing output. -->
 ```
 paste log here
 ```
@@ -28,6 +28,8 @@ paste log here
 - ESP-IDF version: 
 - Firmware commit: 
 - SIM operator / APN: 
-- MQTT broker: HiveMQ Cloud / self-hosted
+- Network mode: Wi-Fi only / automatic / cellular only
+- Traccar Server version:
+- GPS status, last HTTP status and queue count:
 
 ## Additional context

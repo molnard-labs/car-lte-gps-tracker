@@ -1,12 +1,4 @@
-idf_component_register(
-    SRCS "main.c"
+idf_component_register(SRCS "main.c" "tracker_policy.c"
     INCLUDE_DIRS "."
-    PRIV_INCLUDE_DIRS "../config"
-    REQUIRES
-        modem
-        gnss
-        mqtt_wrapper
-        relay
-        power
-        nvs_flash
-)
+    REQUIRES tracker_core tracker_store tracker_net tracker_setup
+             esp_driver_gpio esp_hw_support esp_timer)

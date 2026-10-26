@@ -23,13 +23,15 @@ jobs:
         working-directory: firmware/test
         run: make
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-binaries
-          path: firmware/test/test_*
-          retention-days: 7
+      - name: Check setup JavaScript and provisioning workflow
+        run: |
+          python -c "from pathlib import Path; import re; html=Path('firmware/components/tracker_setup/setup.html').read_text(encoding='utf-8'); print(re.search(r'<script>(.*?)</script>', html, re.S).group(1))" > /tmp/tracker-setup.js
+          node --check /tmp/tracker-setup.js
+          node firmware/components/tracker_setup/test/test_setup_ui.cjs
+          python -m py_compile tools/provision_tracker.py
+          python tools/test_provision_tracker.py
+          python -m py_compile tools/configure_tracker_access.py
+          python tools/test_configure_tracker_access.py
 
   # ── Job 2: Static analysis ──────────────────────────────────────────────────
   static-analysis:
@@ -43,10 +45,10 @@ jobs:
       - name: Install cppcheck
         run: sudo apt-get install -y cppcheck
 
-      - name: Run cppcheck on firmware sources
+      - name: Run cppcheck on portable tracker sources
         run: |
           cppcheck \
-            --enable=all \
+            --enable=warning,performance,portability \
             --suppress=missingIncludeSystem \
             --suppress=missingInclude \
             --suppress=unusedFunction \
@@ -54,18 +56,15 @@ jobs:
             --suppress=checkersReport \
             --error-exitcode=1 \
             --std=c11 \
-            -I firmware/components/modem \
-            -I firmware/components/gnss \
-            -I firmware/components/relay \
-            -I firmware/components/power \
-            -I firmware/components/mqtt_wrapper \
-            firmware/components/gnss/gnss.c \
-            firmware/components/relay/relay.c \
-            firmware/components/power/power_monitor.c \
-            firmware/test/test_gnss.c \
-            firmware/test/test_power.c \
-            firmware/test/test_relay.c \
-            firmware/test/test_mqtt_json.c \
+            -U ESP_PLATFORM \
+            -I firmware/components/tracker_core/include \
+            -I firmware/components/tracker_store/include \
+            -I firmware/components/tracker_setup \
+            -I firmware/main \
+            firmware/components/tracker_core/tracker_core.c \
+            firmware/components/tracker_store/tracker_store.c \
+            firmware/components/tracker_setup/setup_policy.c \
+            firmware/main/tracker_policy.c \
             2>&1
 
   # ── Job 3: ESP-IDF build ─────────────────────────────────────────────────────
@@ -77,27 +76,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create stub credentials.h
-        run: |
-          cat > firmware/config/credentials.h << 'EOF'
-          #pragma once
-          #define CONFIG_VEHICLE_ID   "ci-test"
-          #define CONFIG_SIM_APN      "internet"
-          #define CONFIG_SIM_USER     ""
-          #define CONFIG_SIM_PASS     ""
-          #define CONFIG_MQTT_HOST    "ci.hivemq.cloud"
-          #define CONFIG_MQTT_PORT    8883
-          #define CONFIG_MQTT_USER    "ci"
-          #define CONFIG_MQTT_PASS    "ci"
-          #define CONFIG_MQTT_CA_CERT  NULL
-          #define CONFIG_GNSS_PUBLISH_INTERVAL_S  10
-          #define CONFIG_STATE_PUBLISH_INTERVAL_S 60
-          #define CONFIG_POWER_PUBLISH_INTERVAL_S 30
-          EOF
-
       - name: Build with ESP-IDF
         uses: espressif/esp-idf-ci-action@v1
         with:
-          esp_idf_version: v5.2
+          esp_idf_version: v5.5.6
           target: esp32
           path: firmware

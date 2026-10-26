@@ -1,0 +1,6 @@
+# Name, Type, SubType, Offset, Size, Flags
+nvs, data, nvs, 0x9000, 0x10000,
+phy_init, data, phy, 0x19000, 0x1000,
+factory, data, nvs, 0x1a000, 0x10000, readonly
+app, app, factory, 0x30000, 0x350000,
+tracker_queue, data, 0x40, 0x380000, 0x80000,
